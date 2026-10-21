@@ -56,4 +56,34 @@ Developer clarified on 2026-10-20 that Tempo in Jira supplies planning, helpdesk
 
 ## Verified capability versus assumption
 
+### Phase 1 implementation record — 2026-10-21
+
+- ADR-001/002/010/015 implementation is authored in `src/nexus`, pending runtime
+  acceptance. SQLAlchemy **Core** is used instead of ORM entities: short connection
+  transactions and explicit version predicates avoid an unnecessary repository/ORM
+  layer for this slice. This does not change service or future adapter boundaries.
+- Phase 1 creates only the documented foundation subset. Source identities are
+  adapter/instance/type/remote-ID scoped; connection/profile revisions arrive in
+  Phase 2. The sole source is an explicitly inserted simulated fixture identity.
+- Runtime/dev versions are pinned in `pyproject.toml` and hash-locked in `uv.lock`;
+  selected versions are recorded in `PHASE1_VERIFICATION.md`. Build backend is pinned
+  Hatchling 1.27.0. No OpenCode pin or schema exists yet because adapters are excluded.
+- Public readiness/planning/approval/execution is disabled. The only Phase 1 task
+  mutation records clarification and an orthogonal hold. Pure graph guards describe
+  future evidence requirements; there is no public evidence/approval boolean.
+- Pairing and session hashes add the minimal authentication tables required before
+  exposed mutations. Tokens are printed only by an explicit local `pair` command;
+  JSON request limits and Host/Origin/CSRF checks precede domain commands.
+- The pinned `verification/Dockerfile` is development tooling, not a NEXUS execution
+  adapter or a certified runtime boundary. Phase 1 acceptance passed inside its
+  network-disabled, non-root disposable container; no global service was installed.
+  The executable temporary filesystem is limited to the container's ephemeral `/tmp`
+  because the clean virtual-environment interpreter must execute there.
+- SQLite UTC text is implemented; PostgreSQL native timestamp portability remains
+  unverified and will need its own adapter/portability checks before migration.
+  Fingerprint repository bindings are not verified execution bindings in this slice.
+- Migration `0001_foundation` passed fresh and repeated file-backed migration checks
+  and is packaged in the installed wheel. No real application state was migrated or
+  reset. Later changes require additive versioned migrations.
+
 Official API sources and verification notes are in `ARCHITECTURE.md` and `OPENCODE_INTEGRATION.md`. Public API existence was researched; no private Jira/Odoo/calendar account, installed OpenCode build, real provider billing feed, or sandbox was tested. Odoo installed modules cannot be established from a Git manifest alone. A local scheduler cannot run a powered-off laptop. Subscription allowances are unknown unless officially observed. Planning documents are a design, not a security certification or load-test result.

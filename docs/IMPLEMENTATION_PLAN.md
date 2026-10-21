@@ -1,6 +1,6 @@
 # Phased implementation and execution handoff
 
-Blueprint revision 2, 2026-10-20. The confirmed initial source workflow and adapter/setup contracts are in `CONNECTIONS_AND_PROFILES.md`. Start with `AGENTS.md`; read the phase's linked contracts and `BACKLOG.md`. All phases below are planned, not implemented. A Codex session executes one explicitly requested phase and stops at its definition of done.
+Blueprint revision 2, 2026-10-20; implementation status updated 2026-10-21. The confirmed initial source workflow and adapter/setup contracts are in `CONNECTIONS_AND_PROFILES.md`. Start with `AGENTS.md`; read the phase's linked contracts and `BACKLOG.md`. Phase 1 acceptance passed in the hardened disposable container; see `PHASE1_VERIFICATION.md`. All later phases remain planned. A Codex session executes one explicitly requested phase and stops at its definition of done.
 
 ## Dependencies and release slices
 

@@ -2,6 +2,14 @@
 
 Proposed logical schema, revision 2. Configurable source/profile and runtime identity additions are described in `CONNECTIONS_AND_PROFILES.md`. Implement only the phase-owned subset in each migration. SQLAlchemy/Alembic implementation must preserve these invariants on SQLite and PostgreSQL. Naming below is canonical across the blueprint; JSON examples in agent contracts are transport envelopes, not alternative storage schemas.
 
+Phase 1 status, 2026-10-21: `schema.py` and frozen `0001_foundation` implement users,
+projects/repositories and their association, source/item identities, tasks/sources/
+fingerprints/holds, artifact metadata, jobs, command receipts, audit/outbox and pairing/
+session hashes. Source/profile revisions, snapshots/cursors, schedules/allocations,
+agents, approvals and analytics are not implemented. Current task source uniqueness
+is enforced with partial indexes and fixture transactions. SQLite migration behavior
+and UTC round trips have authored tests, not yet executed; PostgreSQL is unverified.
+
 ## Conventions
 
 - Entity PK `id`: application-generated UUID string; event sequence is the exception (monotonic 64-bit integer). Every FK named `*_id` references the corresponding entity PK unless explicitly stated. Avoid polymorphic unvalidated FK strings.

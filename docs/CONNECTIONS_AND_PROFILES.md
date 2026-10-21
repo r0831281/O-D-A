@@ -1,6 +1,6 @@
 # Connections, planning profiles and runtime selection
 
-Blueprint revision 2, 2026-10-20. This document captures the developer's confirmed workflow and the provider-agnostic integration boundary. It specifies future behavior; no connection or application has been implemented.
+Blueprint revision 2, 2026-10-20. This document captures the developer's confirmed workflow and the provider-agnostic integration boundary. It specifies future behavior; no live connection has been implemented. Phase 1 neutral identity/hash foundations are authored as of 2026-10-21, pending runtime verification (`PHASE1_VERIFICATION.md`). Connection/profile services still belong to Phase 2.
 
 ## Confirmed initial workflow
 

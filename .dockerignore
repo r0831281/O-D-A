@@ -1,0 +1,15 @@
+*
+!pyproject.toml
+!uv.lock
+!src/
+!src/**
+!tests/
+!tests/**
+!verification/
+!verification/Dockerfile
+!verification/run.sh
+!verification/uv-bootstrap.txt
+!verification/build-requirements.txt
+!verification/verify_package.py
+**/__pycache__
+**/*.pyc

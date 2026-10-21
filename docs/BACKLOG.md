@@ -1,10 +1,16 @@
 # Ordered implementation backlog
 
-All tickets are **Planned** as of 2026-10-20. This assignment creates documentation only. Stable IDs never change when a ticket moves; append new IDs for additional work. Revision 2 adds NX-051–NX-055 without renumbering existing tickets. Follow phase/dependency order rather than sorting IDs numerically. Implement each phase in this order, respecting dependencies, then run its full exit procedure in `IMPLEMENTATION_PLAN.md`. An item is done only with its specified proof, documentation updates and no broken prior milestone.
+Updated 2026-10-21: NX-001–NX-006 are **Done** after clean installed-wheel verification, 187 passing tests and the isolated temporary-state demo. See `PHASE1_VERIFICATION.md` for exact commands, evidence and limitations. All later tickets remain **Planned**. Stable IDs never change when a ticket moves; append new IDs for additional work. Revision 2 adds NX-051–NX-055 without renumbering existing tickets. Follow phase/dependency order rather than sorting IDs numerically. Implement each phase in this order, respecting dependencies, then run its full exit procedure in `IMPLEMENTATION_PLAN.md`. An item is done only with its specified proof, documentation updates and no broken prior milestone.
 
 Priority: P0 = foundation/safety/first usable planning workflow; P1 = controlled implementation or trustworthy telemetry; P2 = analytics/operational polish. P2 does not mean optional where explicitly required by a phase. No effort estimates are asserted before implementation discovery.
 
 ## Phase 1 — Core foundation
+
+Status for every ticket in this table: **Done**. NX-001 has a pinned lock, typed
+settings, app and CLI; NX-002 a frozen migration; NX-003 state/hash/CAS; NX-004 atomic
+commands and local auth; NX-005 a fenced no-op worker; NX-006 tests/demo, logging and
+runbook. The installed wheel, migration resources, runtime suite and demo passed in
+the hardened disposable container. See `PHASE1_VERIFICATION.md`.
 
 | ID | Priority; dependencies | Engineering ticket and output | Acceptance proof |
 | --- | --- | --- | --- |

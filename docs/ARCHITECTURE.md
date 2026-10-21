@@ -2,6 +2,12 @@
 
 Design revision 2, 2026-10-20. `CONNECTIONS_AND_PROFILES.md` specifies the confirmed Tempo/Jira/Odoo profile and provider-neutral boundaries. Read with `DECISIONS.md`, `DATA_MODEL.md`, `SECURITY.md`, and `OPENCODE_INTEGRATION.md`. This describes a proposed system; the inspected folder was empty and was not a Git repository.
 
+Implementation status, 2026-10-21: `src/nexus` now contains Phase 1 settings, pure
+domain contracts, SQLAlchemy Core schema/storage, packaged frozen migration, atomic
+services, local auth/API, no-op worker, logging and CLI. `tests/` and `verification/`
+hold the acceptance suite and disposable development runner. No later-phase directories
+were scaffolded. Runtime verification is blocked; see `PHASE1_VERIFICATION.md`.
+
 ## Recommended topology
 
 One Python package provides the HTTP control plane, domain services, connectors, job worker and scheduler-enqueue CLI. These are process roles, not microservices. SQLite is the authority. SvelteKit builds a static client that FastAPI serves on the same loopback origin. Selected harness instances run headlessly through a NEXUS RuntimeAdapter (OpenCode first/default) inside isolated execution environments; their terminal UI need not remain open.
