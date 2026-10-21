@@ -17,6 +17,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 
+from nexus import schema as s
 from nexus.auth import (
     Principal,
     authenticate,
@@ -27,7 +28,6 @@ from nexus.auth import (
 from nexus.config import Settings
 from nexus.domain import NexusError, StrictModel, TaskState
 from nexus.logging import safe_log
-from nexus import schema as s
 from nexus.planning import PlanningService
 from nexus.services import Foundation
 from nexus.storage import Database
@@ -290,41 +290,69 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         user: Annotated[Principal, Depends(mutation_principal)],
         key: Annotated[str, Depends(command_key)],
     ):
-        return planning.queue_manual_sync(user.user_id, body.connection_revision_id,
-                                          body.stream_key, body.query_hash, key)
+        return planning.queue_manual_sync(
+            user.user_id, body.connection_revision_id, body.stream_key, body.query_hash, key
+        )
 
     @app.get("/source-sync-requests/{request_id}")
     def source_sync_status(request_id: str, user: Annotated[Principal, Depends(principal)]):
         with db.read() as connection:
-            row = connection.execute(select(s.manual_sync_requests).where(
-                s.manual_sync_requests.c.id == request_id,
-                s.manual_sync_requests.c.actor_id == user.user_id,
-            )).first()
+            row = connection.execute(
+                select(s.manual_sync_requests).where(
+                    s.manual_sync_requests.c.id == request_id,
+                    s.manual_sync_requests.c.actor_id == user.user_id,
+                )
+            ).first()
         if row is None:
             raise NexusError("sync_request_missing", 404)
         data = dict(row._mapping)
-        return {"request_id": data["id"], "status": data["status"], "sync_run_id": data["sync_run_id"]}
+        return {
+            "request_id": data["id"],
+            "status": data["status"],
+            "sync_run_id": data["sync_run_id"],
+        }
 
     @app.get("/planning/days/{local_date}")
-    def planning_day(local_date: str, profile_revision_id: str,
-                     user: Annotated[Principal, Depends(principal)]):
+    def planning_day(
+        local_date: str, profile_revision_id: str, user: Annotated[Principal, Depends(principal)]
+    ):
         try:
             parsed_date = date.fromisoformat(local_date)
         except ValueError:
             raise NexusError("date_invalid", 422) from None
         with db.read() as connection:
-            row = connection.execute(select(s.daily_views).where(
-                s.daily_views.c.profile_revision_id == profile_revision_id,
-                s.daily_views.c.local_date == parsed_date,
-            )).first()
+            row = connection.execute(
+                select(s.daily_views).where(
+                    s.daily_views.c.profile_revision_id == profile_revision_id,
+                    s.daily_views.c.local_date == parsed_date,
+                )
+            ).first()
         if row is None:
             raise NexusError("planning_day_missing", 404)
         data = dict(row._mapping)
         freshness = {source: bool(value) for source, value in data["freshness"].items()}
-        return {"local_date": local_date, "timezone": data["timezone"],
-                "profile_revision_id": profile_revision_id,
-                "status": "fresh" if all(freshness.values()) else "stale",
-                "freshness": freshness, "entries": data["entries"],
-                "deadlines_are_separate": True, "generated_at": data["generated_at"].isoformat()}
+        return {
+            "local_date": local_date,
+            "timezone": data["timezone"],
+            "profile_revision_id": profile_revision_id,
+            "status": "fresh" if all(freshness.values()) else "stale",
+            "freshness": freshness,
+            "entries": data["entries"],
+            "deadlines_are_separate": True,
+            "generated_at": data["generated_at"].isoformat(),
+        }
+
+    @app.get("/planning/windows/{start_date}")
+    def planning_window(
+        start_date: str,
+        profile_revision_id: str,
+        user: Annotated[Principal, Depends(principal)],
+        days: int = 7,
+    ):
+        try:
+            parsed_date = date.fromisoformat(start_date)
+        except ValueError:
+            raise NexusError("date_invalid", 422) from None
+        return PlanningService(db).read_window(profile_revision_id, parsed_date, days)
 
     return app

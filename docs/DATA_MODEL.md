@@ -2,13 +2,16 @@
 
 Proposed logical schema, revision 2. Configurable source/profile and runtime identity additions are described in `CONNECTIONS_AND_PROFILES.md`. Implement only the phase-owned subset in each migration. SQLAlchemy/Alembic implementation must preserve these invariants on SQLite and PostgreSQL. Naming below is canonical across the blueprint; JSON examples in agent contracts are transport envelopes, not alternative storage schemas.
 
-Phase 1 status, 2026-10-21: `schema.py` and frozen `0001_foundation` implement users,
-projects/repositories and their association, source/item identities, tasks/sources/
-fingerprints/holds, artifact metadata, jobs, command receipts, audit/outbox and pairing/
-session hashes. Source/profile revisions, snapshots/cursors, schedules/allocations,
-agents, approvals and analytics are not implemented. Current task source uniqueness
-is enforced with partial indexes and fixture transactions. SQLite migration behavior
-and UTC round trips have authored tests, not yet executed; PostgreSQL is unverified.
+Phase 2 status, 2026-10-21: migrations `0001_foundation` and `0002_source_sync`
+implement the Phase 1 foundation plus connection/profile revisions, test/activation/
+invalidation evidence, sync runs/cursors/pages/snapshots, manual sync requests,
+allocations, allocation days, schedules, daily views and NX-011 resolution history.
+`resolve_task` creates/reuses one canonical task keyed by its primary Jira source,
+stores immutable requirements/profile/link/repository resolution evidence in
+`planning_task_resolutions`, and stores each Tempo allocation snapshot association in
+`planning_task_allocations`. Explicit local project/repository-binding IDs are required
+by profile rules. The complete fixture-scope Phase 2 acceptance passed in the hardened
+container; PostgreSQL portability and all live providers remain unverified.
 
 ## Conventions
 
@@ -52,6 +55,8 @@ and UTC round trips have authored tests, not yet executed; PostgreSQL is unverif
 | `planning_allocations` | source item FK, allocated account/resource type, native date range, item kind/reference, current snapshot FK, timezone, precision, status | UQ source item; capacity allocation distinct from calendar event; unknown exact start stays NULL |
 | `allocation_days` | allocation FK, local date, planned seconds nullable, optional verified clock start, precision and source snapshot FK | UQ allocation/date in current projection; nonnegative known seconds; no arbitrary equal daily spreading |
 | `allocation_tasks` | allocation FK, task FK, issue-resolution evidence | UQ allocation/task; unresolved/project-only capacity does not fabricate a task |
+| `planning_task_resolutions` | task FK, profile revision FK, canonical Jira item/snapshot, requirements source/item/snapshot, classification/status/blockers, local repository mapping reference/binding IDs, route trace and hashes | UQ task/resolution hash; immutable; linked Odoo requirements do not replace Jira task identity |
+| `planning_task_allocations` | task FK, resolution FK, Tempo allocation FK and immutable allocation snapshot FK | UQ resolution/allocation/snapshot; each allocation remains separately traceable |
 | `schedules` | source external item FK nullable, occurrence ID/UID/original start, UTC start/end OR all-day start/end dates, source timezone, status, revision hash | UQ source item/occurrence key; CHECK timed XOR all-day; end > start; IX starts/ends |
 | `schedule_tasks` | schedule FK, task FK, association evidence, confirmed/derived flag | UQ schedule/task; multiple tasks per event allowed |
 | `daily_views` | user FK, local date, timezone, generated_at, source freshness manifest | UQ user/date/timezone; projection, not task ownership |

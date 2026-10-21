@@ -474,3 +474,9 @@ All NX-001–NX-006 acceptance criteria passed; the Phase 1 backlog status is **
 No Phase 2 implementation has begun. The next work, only when separately requested,
 is Phase 2 in this exact order: NX-007, NX-051, NX-008, NX-009, NX-052, NX-010,
 NX-011, NX-012. Phase 1 makes no live Jira, Odoo, Tempo, calendar, OpenCode or AI calls.
+
+## Superseding phase status — 2026-10-21
+
+The Phase 1 results above remain historical evidence for that phase. Phase 2 work
+has since passed its fixture-scope exit gate; current implementation and verification
+status are in `PHASE2_VERIFICATION.md`. Phase 3 has not started.

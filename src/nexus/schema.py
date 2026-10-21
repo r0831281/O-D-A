@@ -186,7 +186,9 @@ profile_connections = sa.Table(
     "profile_connections",
     metadata,
     *immutable_columns(),
-    sa.Column("profile_revision_id", sa.ForeignKey("planning_profile_revisions.id"), nullable=False),
+    sa.Column(
+        "profile_revision_id", sa.ForeignKey("planning_profile_revisions.id"), nullable=False
+    ),
     sa.Column("connection_revision_id", sa.ForeignKey("connection_revisions.id"), nullable=False),
     sa.Column("role", sa.String(40), nullable=False),
     sa.UniqueConstraint("profile_revision_id", "connection_revision_id", "role"),
@@ -213,7 +215,9 @@ profile_activations = sa.Table(
     metadata,
     *immutable_columns(),
     sa.Column("profile_id", sa.ForeignKey("planning_profiles.id"), nullable=False, index=True),
-    sa.Column("profile_revision_id", sa.ForeignKey("planning_profile_revisions.id"), nullable=False),
+    sa.Column(
+        "profile_revision_id", sa.ForeignKey("planning_profile_revisions.id"), nullable=False
+    ),
     sa.Column("actor_id", sa.ForeignKey("users.id"), nullable=False),
     sa.Column("operation", sa.String(16), nullable=False),
     sa.Column("prior_activation_id", sa.ForeignKey("profile_activations.id")),
@@ -227,7 +231,9 @@ profile_binding_invalidations = sa.Table(
     sa.Column("profile_id", sa.ForeignKey("planning_profiles.id"), nullable=False, index=True),
     sa.Column("prior_revision_id", sa.ForeignKey("planning_profile_revisions.id")),
     sa.Column("new_revision_id", sa.ForeignKey("planning_profile_revisions.id"), nullable=False),
-    sa.Column("activation_id", sa.ForeignKey("profile_activations.id"), nullable=False, unique=True),
+    sa.Column(
+        "activation_id", sa.ForeignKey("profile_activations.id"), nullable=False, unique=True
+    ),
     sa.Column("reason", sa.String(64), nullable=False),
 )
 sync_runs = sa.Table(
@@ -245,7 +251,9 @@ sync_runs = sa.Table(
     sa.Column("retry_at", UTCDateTime()),
     sa.Column("finished_at", UTCDateTime()),
     sa.UniqueConstraint("source_id", "generation"),
-    sa.CheckConstraint("status IN ('running','succeeded','failed','retry_wait')", name="known_status"),
+    sa.CheckConstraint(
+        "status IN ('running','succeeded','failed','retry_wait')", name="known_status"
+    ),
 )
 source_cursors = sa.Table(
     "source_cursors",
@@ -263,7 +271,12 @@ manual_sync_requests = sa.Table(
     "manual_sync_requests",
     metadata,
     *immutable_columns(),
-    sa.Column("connection_revision_id", sa.ForeignKey("connection_revisions.id"), nullable=False, index=True),
+    sa.Column(
+        "connection_revision_id",
+        sa.ForeignKey("connection_revisions.id"),
+        nullable=False,
+        index=True,
+    ),
     sa.Column("actor_id", sa.ForeignKey("users.id"), nullable=False, index=True),
     sa.Column("stream_key", sa.String(200), nullable=False),
     sa.Column("query_hash", sa.String(64), nullable=False),
@@ -297,7 +310,9 @@ external_item_snapshots = sa.Table(
     sa.Column("normalized", sa.JSON, nullable=False),
     sa.Column("visibility", sa.String(24), nullable=False),
     sa.UniqueConstraint("external_item_id", "revision"),
-    sa.CheckConstraint("visibility IN ('visible','inaccessible','deleted','unknown')", name="visibility"),
+    sa.CheckConstraint(
+        "visibility IN ('visible','inaccessible','deleted','unknown')", name="visibility"
+    ),
 )
 planning_allocations = sa.Table(
     "planning_allocations",
@@ -315,21 +330,29 @@ planning_allocations = sa.Table(
     sa.Column("precision", sa.String(32), nullable=False),
     sa.Column("status", sa.String(24), nullable=False),
     sa.CheckConstraint("end_date_exclusive > start_date", name="ordered_dates"),
-    sa.CheckConstraint("native_daily_seconds IS NULL OR native_daily_seconds >= 0", name="nonnegative_daily_effort"),
-    sa.CheckConstraint("precision IN ('exact_daily','period_total','date_only')", name="known_precision"),
+    sa.CheckConstraint(
+        "native_daily_seconds IS NULL OR native_daily_seconds >= 0", name="nonnegative_daily_effort"
+    ),
+    sa.CheckConstraint(
+        "precision IN ('exact_daily','period_total','date_only')", name="known_precision"
+    ),
 )
 allocation_days = sa.Table(
     "allocation_days",
     metadata,
     *immutable_columns(),
-    sa.Column("allocation_id", sa.ForeignKey("planning_allocations.id"), nullable=False, index=True),
+    sa.Column(
+        "allocation_id", sa.ForeignKey("planning_allocations.id"), nullable=False, index=True
+    ),
     sa.Column("local_date", sa.Date, nullable=False),
     sa.Column("planned_seconds", sa.Integer),
     sa.Column("exact_start", UTCDateTime()),
     sa.Column("precision", sa.String(32), nullable=False),
     sa.Column("snapshot_id", sa.ForeignKey("external_item_snapshots.id"), nullable=False),
     sa.UniqueConstraint("allocation_id", "local_date"),
-    sa.CheckConstraint("planned_seconds IS NULL OR planned_seconds >= 0", name="nonnegative_effort"),
+    sa.CheckConstraint(
+        "planned_seconds IS NULL OR planned_seconds >= 0", name="nonnegative_effort"
+    ),
 )
 schedules = sa.Table(
     "schedules",
@@ -358,13 +381,66 @@ daily_views = sa.Table(
     "daily_views",
     metadata,
     *mutable_columns(),
-    sa.Column("profile_revision_id", sa.ForeignKey("planning_profile_revisions.id"), nullable=False),
+    sa.Column(
+        "profile_revision_id", sa.ForeignKey("planning_profile_revisions.id"), nullable=False
+    ),
     sa.Column("local_date", sa.Date, nullable=False),
     sa.Column("timezone", sa.String(128), nullable=False),
     sa.Column("generated_at", UTCDateTime(), nullable=False),
     sa.Column("freshness", sa.JSON, nullable=False),
     sa.Column("entries", sa.JSON, nullable=False),
     sa.UniqueConstraint("profile_revision_id", "local_date", "timezone"),
+)
+planning_task_resolutions = sa.Table(
+    "planning_task_resolutions",
+    metadata,
+    *immutable_columns(),
+    sa.Column("task_id", sa.ForeignKey("tasks.id"), nullable=False, index=True),
+    sa.Column(
+        "profile_revision_id", sa.ForeignKey("planning_profile_revisions.id"), nullable=False
+    ),
+    sa.Column("jira_item_id", sa.ForeignKey("external_items.id"), nullable=False, index=True),
+    sa.Column("jira_snapshot_id", sa.ForeignKey("external_item_snapshots.id"), nullable=False),
+    sa.Column("requirements_source", sa.String(16), nullable=False),
+    sa.Column("requirements_item_id", sa.ForeignKey("external_items.id")),
+    sa.Column("requirements_snapshot_id", sa.ForeignKey("external_item_snapshots.id")),
+    sa.Column("category", sa.String(32), nullable=False),
+    sa.Column("status", sa.String(16), nullable=False),
+    sa.Column("blockers", sa.JSON, nullable=False),
+    sa.Column("repository_mapping_ref", sa.String(256), nullable=False),
+    sa.Column("repository_binding_ids", sa.JSON, nullable=False),
+    sa.Column("route_trace", sa.JSON, nullable=False),
+    sa.Column("requirements_hash", sa.String(64), nullable=False),
+    sa.Column("resolution_hash", sa.String(64), nullable=False),
+    sa.UniqueConstraint("task_id", "resolution_hash"),
+    sa.CheckConstraint("requirements_source IN ('jira','odoo')", name="known_requirements_source"),
+    sa.CheckConstraint("status IN ('ready','blocked')", name="known_status"),
+    sa.CheckConstraint(
+        "(requirements_source = 'jira' AND requirements_item_id IS NOT NULL "
+        "AND requirements_snapshot_id IS NOT NULL) OR "
+        "(requirements_source = 'odoo' AND "
+        "((requirements_item_id IS NULL AND requirements_snapshot_id IS NULL) OR "
+        "(requirements_item_id IS NOT NULL AND requirements_snapshot_id IS NOT NULL)))",
+        name="requirements_snapshot_pair",
+    ),
+)
+planning_task_allocations = sa.Table(
+    "planning_task_allocations",
+    metadata,
+    *immutable_columns(),
+    sa.Column("task_id", sa.ForeignKey("tasks.id"), nullable=False, index=True),
+    sa.Column(
+        "resolution_id", sa.ForeignKey("planning_task_resolutions.id"), nullable=False, index=True
+    ),
+    sa.Column(
+        "allocation_id", sa.ForeignKey("planning_allocations.id"), nullable=False, index=True
+    ),
+    sa.Column(
+        "allocation_snapshot_id",
+        sa.ForeignKey("external_item_snapshots.id"),
+        nullable=False,
+    ),
+    sa.UniqueConstraint("resolution_id", "allocation_id", "allocation_snapshot_id"),
 )
 TASK_STATES = (
     "imported",

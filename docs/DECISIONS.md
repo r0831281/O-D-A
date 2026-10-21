@@ -86,4 +86,23 @@ Developer clarified on 2026-10-20 that Tempo in Jira supplies planning, helpdesk
   and is packaged in the installed wheel. No real application state was migrated or
   reset. Later changes require additive versioned migrations.
 
+### Phase 2 implementation record — 2026-10-21
+
+- Migration `0002_source_sync` adds typed connection/profile revisions, read-test and
+  activation evidence, source cursors/pages/snapshots, persistent allocation/calendar
+  projections, daily views and NX-011 task resolution/allocation history. Phase 2
+  behavior and the installed-wheel run are recorded in `PHASE2_VERIFICATION.md`.
+- Jira Cloud, Odoo 17/18 RPC, Odoo 19 JSON-2, Tempo Cloud Planner candidate, and local
+  ICS adapters share provider-neutral read contracts. Provider credentials remain
+  environment secret references. No live account was tested; Tempo remains blocked
+  until the actual product/account probe confirms compatibility.
+- NX-011 uses the Jira issue as canonical task identity, with Odoo task snapshots as
+  project-requirements provenance and Tempo allocation snapshots as separate schedule
+  associations. Profile rules explicitly bind a local project and repository-binding
+  IDs; the service validates those IDs and does not infer them from titles or source
+  IDs. Changed source/profile evidence appends a resolution history row. No live account
+  or existing customer database was migrated; an intermediate, already-applied
+  development `0002_source_sync` would need an additive migration before deployment,
+  and old profile drafts must be updated with explicit local binding IDs.
+
 Official API sources and verification notes are in `ARCHITECTURE.md` and `OPENCODE_INTEGRATION.md`. Public API existence was researched; no private Jira/Odoo/calendar account, installed OpenCode build, real provider billing feed, or sandbox was tested. Odoo installed modules cannot be established from a Git manifest alone. A local scheduler cannot run a powered-off laptop. Subscription allowances are unknown unless officially observed. Planning documents are a design, not a security certification or load-test result.

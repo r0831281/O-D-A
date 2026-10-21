@@ -44,7 +44,7 @@ def test_health_is_minimal_and_startup_does_not_seed_tasks(local_api):
     client, db, settings, token = local_api
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"api": "ok", "database": "ok", "execution": "disabled", "phase": 1}
+    assert response.json() == {"api": "ok", "database": "ok", "execution": "disabled", "phase": 2}
     assert client.get("/status").status_code == 401
     pair(client, settings, token)
     assert client.get("/status").json()["tasks"] == []

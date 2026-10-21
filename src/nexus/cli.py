@@ -17,7 +17,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from nexus import schema as s
 from nexus.auth import issue_pairing
 from nexus.config import Settings
-from nexus.domain import NexusError, TaskState
+from nexus.domain import NexusError, TaskState, tuple_json_arrays
 from nexus.logging import configure_logging, safe_log
 from nexus.planning import PlanningService, SyncEngine
 from nexus.profiles import LinkStatus, PlanningProfileConfig
@@ -30,7 +30,6 @@ from nexus.sources import (
     SourceFailure,
     TempoCloudAdapter,
     TempoConfig,
-    parse_ics,
     registered_adapters,
 )
 from nexus.storage import Database, migrate
@@ -74,7 +73,16 @@ def _parser() -> argparse.ArgumentParser:
     sub.add_parser("demo")
     sub.add_parser("source-discovery")
     connection = sub.add_parser("connection-draft")
-    connection.add_argument("adapter", choices=["jira-cloud-v1", "tempo-cloud-planner-v1", "odoo-17-read-v1", "odoo-18-read-v1", "odoo-19-read-v1"])
+    connection.add_argument(
+        "adapter",
+        choices=[
+            "jira-cloud-v1",
+            "tempo-cloud-planner-v1",
+            "odoo-17-read-v1",
+            "odoo-18-read-v1",
+            "odoo-19-read-v1",
+        ],
+    )
     connection.add_argument("config_file", type=Path)
     connection.add_argument("--adapter-build", default="nexus-source-contract-1")
     test = sub.add_parser("connection-test")
@@ -100,9 +108,18 @@ def _parser() -> argparse.ArgumentParser:
     day.add_argument("profile_revision_id")
     day.add_argument("local_date", type=date.fromisoformat)
     day.add_argument("fixture_file", type=Path)
+    resolve_task = sub.add_parser("planning-resolve")
+    resolve_task.add_argument("profile_revision_id")
+    resolve_task.add_argument("jira_external_item_id")
+    window = sub.add_parser("planning-window")
+    window.add_argument("profile_revision_id")
+    window.add_argument("start_date", type=date.fromisoformat)
+    window.add_argument("days", type=int)
+    window.add_argument("fixture_file", type=Path)
     calendar = sub.add_parser("calendar-import")
     calendar.add_argument("ics_file", type=Path)
     calendar.add_argument("--timezone", default="Europe/Brussels")
+    calendar.add_argument("--calendar-id")
     return parser
 
 
@@ -118,13 +135,13 @@ def _json_file(path: Path) -> object:
 def _source_adapter(adapter_id: str, config: dict):
     secret = resolve_secret(str(config["secret_ref"]))
     if adapter_id == "jira-cloud-v1":
-        typed = JiraConfig.model_validate(config)
+        typed = JiraConfig.model_validate(tuple_json_arrays(config))
         return JiraCloudAdapter(typed, HttpsJsonTransport(typed.site_url, secret, adapter="jira"))
     if adapter_id == "tempo-cloud-planner-v1":
-        typed = TempoConfig.model_validate(config)
+        typed = TempoConfig.model_validate(tuple_json_arrays(config))
         return TempoCloudAdapter(typed, HttpsJsonTransport(typed.base_url, secret, adapter="tempo"))
     if adapter_id.startswith("odoo-"):
-        typed = OdooConfig.model_validate(config)
+        typed = OdooConfig.model_validate(tuple_json_arrays(config))
         if typed.odoo_major == 19:
             transport = HttpsJsonTransport(typed.base_url, secret, adapter="odoo19")
         else:
@@ -282,8 +299,11 @@ def main(argv: list[str] | None = None) -> int:
             service = Foundation(db)
             planning = PlanningService(db)
             if args.command == "source-discovery":
-                result = {"adapters": list(registered_adapters()), "credentials_required": False,
-                          "live_status": "not_tested"}
+                result = {
+                    "adapters": list(registered_adapters()),
+                    "credentials_required": False,
+                    "live_status": "not_tested",
+                }
             elif args.command == "connection-draft":
                 config = _json_file(args.config_file)
                 if not isinstance(config, dict) or config.get("adapter_id") != args.adapter:
@@ -291,58 +311,86 @@ def main(argv: list[str] | None = None) -> int:
                 if args.adapter.startswith("odoo-"):
                     major = int(args.adapter.split("-")[1])
                     config = {**config, "odoo_major": major}
-                    typed = OdooConfig.model_validate(config)
+                    typed = OdooConfig.model_validate(tuple_json_arrays(config))
                     instance_identity = f"{typed.base_url}/{typed.database}"
                 elif args.adapter == "jira-cloud-v1":
-                    typed = JiraConfig.model_validate(config)
+                    typed = JiraConfig.model_validate(tuple_json_arrays(config))
                     instance_identity = typed.site_url
                 else:
-                    typed = TempoConfig.model_validate(config)
+                    typed = TempoConfig.model_validate(tuple_json_arrays(config))
                     instance_identity = f"{typed.base_url}/{typed.product_id}"
                 config = {**typed.model_dump(mode="json"), "adapter_id": args.adapter}
-                result = planning.save_connection(args.adapter, instance_identity,
-                    config, (typed.secret_ref,), args.adapter_build)
+                result = planning.save_connection(
+                    args.adapter, instance_identity, config, (typed.secret_ref,), args.adapter_build
+                )
             elif args.command == "connection-test":
                 with db.read() as connection:
-                    row = connection.execute(select(s.connection_revisions).where(
-                        s.connection_revisions.c.id == args.connection_revision_id)).first()
+                    row = connection.execute(
+                        select(s.connection_revisions).where(
+                            s.connection_revisions.c.id == args.connection_revision_id
+                        )
+                    ).first()
                 if row is None:
                     raise NexusError("connection_revision_missing", 404)
                 revision = dict(row._mapping)
                 source = _source_adapter(revision["config"]["adapter_id"], revision["config"])
                 try:
                     evidence = dict(source.read_test())
-                    status = "blocked" if evidence.get("provider_verification") == "account_probe_required" else "passed"
+                    status = (
+                        "blocked"
+                        if evidence.get("provider_verification") == "account_probe_required"
+                        else "passed"
+                    )
                 except SourceFailure as exc:
-                    evidence, status = {"error_code": exc.code, "retry_after_seconds": exc.retry_after}, "blocked" if exc.status in {424, 403} else "failed"
-                result_id = planning.record_test(connection_revision_id=args.connection_revision_id,
-                    profile_revision_id=None, test_kind="read", status=status,
-                    config_hash=revision["config_hash"], adapter_build=revision["adapter_build"], result=evidence)
+                    evidence, status = (
+                        {"error_code": exc.code, "retry_after_seconds": exc.retry_after},
+                        "blocked" if exc.status in {424, 403} else "failed",
+                    )
+                result_id = planning.record_test(
+                    connection_revision_id=args.connection_revision_id,
+                    profile_revision_id=None,
+                    test_kind="read",
+                    status=status,
+                    config_hash=revision["config_hash"],
+                    adapter_build=revision["adapter_build"],
+                    result=evidence,
+                )
                 result = {"test_run_id": result_id, "status": status, "evidence": evidence}
             elif args.command == "profile-draft":
                 raw = _json_file(args.config_file)
-                result = planning.save_profile(PlanningProfileConfig.model_validate(raw))
+                result = planning.save_profile(
+                    PlanningProfileConfig.model_validate(tuple_json_arrays(raw))
+                )
             elif args.command == "profile-preview":
                 raw = _json_file(args.cases_file)
                 if not isinstance(raw, list):
                     raise NexusError("preview_cases_invalid", 422)
                 cases = tuple(raw)
+
                 def fetch_fixture(instance, record_id):
                     for case in cases:
                         fixture = case.get("odoo_fixture", {})
                         if fixture.get("identity") == f"{instance}:project.task:{record_id}":
-                            return LinkStatus(fixture.get("status", "inaccessible")), fixture.get("task")
+                            return LinkStatus(fixture.get("status", "inaccessible")), fixture.get(
+                                "task"
+                            )
                     return LinkStatus.INACCESSIBLE, None
+
                 result = planning.preview(args.profile_revision_id, cases, fetch_odoo=fetch_fixture)
                 result["simulated"] = True
             elif args.command == "profile-activate":
-                result = planning.activate(args.profile_revision_id, _operator(db), preview_test_id=args.preview_test_id)
+                result = planning.activate(
+                    args.profile_revision_id, _operator(db), preview_test_id=args.preview_test_id
+                )
             elif args.command == "profile-rollback":
                 result = planning.rollback(args.profile_id, args.profile_revision_id, _operator(db))
             elif args.command == "source-sync":
                 with db.read() as connection:
-                    row = connection.execute(select(s.connection_revisions).where(
-                        s.connection_revisions.c.id == args.connection_revision_id)).first()
+                    row = connection.execute(
+                        select(s.connection_revisions).where(
+                            s.connection_revisions.c.id == args.connection_revision_id
+                        )
+                    ).first()
                 if row is None:
                     raise NexusError("connection_revision_missing", 404)
                 revision = dict(row._mapping)
@@ -352,13 +400,19 @@ def main(argv: list[str] | None = None) -> int:
                 result = engine.execute(run_id, args.stream_key, args.query_hash, adapter)
             elif args.command == "source-sync-request":
                 with db.read() as connection:
-                    request = connection.execute(select(s.manual_sync_requests).where(
-                        s.manual_sync_requests.c.id == args.request_id)).first()
+                    request = connection.execute(
+                        select(s.manual_sync_requests).where(
+                            s.manual_sync_requests.c.id == args.request_id
+                        )
+                    ).first()
                     if request is None:
                         raise NexusError("sync_request_missing", 404)
                     request_data = dict(request._mapping)
-                    revision_row = connection.execute(select(s.connection_revisions).where(
-                        s.connection_revisions.c.id == request_data["connection_revision_id"])).first()
+                    revision_row = connection.execute(
+                        select(s.connection_revisions).where(
+                            s.connection_revisions.c.id == request_data["connection_revision_id"]
+                        )
+                    ).first()
                 if revision_row is None:
                     raise NexusError("connection_revision_missing", 404)
                 revision = dict(revision_row._mapping)
@@ -368,13 +422,39 @@ def main(argv: list[str] | None = None) -> int:
                 raw = _json_file(args.fixture_file)
                 if not isinstance(raw, dict):
                     raise NexusError("planning_fixture_invalid", 422)
-                result = planning.materialize_day(args.profile_revision_id, args.local_date,
-                    freshness=raw.get("freshness", {}), allocations=tuple(raw.get("allocations", [])),
-                    schedules=tuple(raw.get("schedules", [])))
+                result = planning.materialize_day(
+                    args.profile_revision_id,
+                    args.local_date,
+                    freshness=raw.get("freshness", {}),
+                    allocations=tuple(raw.get("allocations", [])),
+                    schedules=tuple(raw.get("schedules", [])),
+                )
                 result["simulated"] = True
+            elif args.command == "planning-window":
+                raw = _json_file(args.fixture_file)
+                if not isinstance(raw, dict):
+                    raise NexusError("planning_fixture_invalid", 422)
+                result = planning.materialize_window(
+                    args.profile_revision_id,
+                    args.start_date,
+                    args.days,
+                    freshness=raw.get("freshness", {}),
+                    allocations=tuple(raw.get("allocations", [])),
+                    schedules=tuple(raw.get("schedules", [])),
+                )
+                result["simulated"] = True
+            elif args.command == "planning-resolve":
+                result = planning.resolve_task(
+                    args.profile_revision_id,
+                    args.jira_external_item_id,
+                    _operator(db),
+                )
             elif args.command == "calendar-import":
-                events = parse_ics(args.ics_file.read_text(encoding="utf-8"), args.timezone)
-                result = {"simulated": True, "event_count": len(events), "events": events}
+                result = planning.import_ics(
+                    args.calendar_id or args.ics_file.stem,
+                    args.timezone,
+                    args.ics_file.read_text(encoding="utf-8"),
+                )
             elif args.command == "migrate":
                 migrate(db)
                 result = {"migration": "0002_source_sync"}

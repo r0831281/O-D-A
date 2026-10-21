@@ -1,6 +1,6 @@
 # Connections, planning profiles and runtime selection
 
-Blueprint revision 2, 2026-10-20. This document captures the developer's confirmed workflow and the provider-agnostic integration boundary. It specifies future behavior; no live connection has been implemented. Phase 1 neutral identity/hash foundations are authored as of 2026-10-21, pending runtime verification (`PHASE1_VERIFICATION.md`). Connection/profile services still belong to Phase 2.
+Blueprint revision 2, implementation status updated 2026-10-21. This document captures the confirmed workflow and provider-agnostic integration boundary. Phase 2 typed connection/profile revisions, read tests, preview/activation/rollback, fixture adapters and canonical route resolution are implemented; no live connection has been tested. See `PHASE2_VERIFICATION.md`.
 
 ## Confirmed initial workflow
 
@@ -10,6 +10,14 @@ Blueprint revision 2, 2026-10-20. This document captures the developer's confirm
 | Project development | Tempo/Jira planning issue | Jira issue and configured project-work rule | Explicitly linked Odoo `project.task` in a configured instance/database | Odoo project/version to approved repository/branch mapping |
 
 Tempo schedules the work; Jira identifies the issue; an Odoo-linked project task describes the work. Do not assume Jira's description contains the project requirements. Outlook is an optional alternative or supplementary calendar connection, not a prerequisite or the schedule authority for this initial profile. Verify which Tempo product/API the account uses during setup: Cloud Capacity Planner is the initial candidate, not a confirmed private-account fact. Timesheets worklogs are actual time and must not be substituted for planned allocations.
+
+**Canonical persistence:** Jira issue identity is the canonical NEXUS task key for
+both helpdesk and project branches. The Odoo task is requirements-source provenance,
+not another canonical work item. Every route rule explicitly names a local NEXUS
+project and one or more repository-binding IDs linked to that project; absent or stale
+bindings are configuration errors. Each Tempo allocation and source snapshot is a
+separate association to the Jira-keyed task. Re-resolution appends immutable evidence
+when profile, source snapshot, link, requirement content or allocation evidence changes.
 
 ```mermaid
 flowchart TD
@@ -69,11 +77,15 @@ work_items:
   connection: jira-work
 rules:
   - category: helpdesk
+    nexus_project_id: local-helpdesk-project-id
+    repository_binding_ids: [local-project-repository-binding-id]
     jira_project_refs: [configured-helpdesk-project]
     requirements:
       connection: jira-work
       fields: [description, configured-acceptance-field]
   - category: project
+    nexus_project_id: local-development-project-id
+    repository_binding_ids: [local-project-repository-binding-id]
     jira_project_refs: [configured-development-project]
     requirements:
       connection: odoo-client
@@ -118,7 +130,7 @@ Switching from Tempo to Outlook, or changing a Jira-to-Odoo link, never deletes 
 ## Delivery and acceptance
 
 - Phase 1: provider-neutral source/task identities and typed config/hash foundations only. No new provider/runtime scaffolding or live credentials.
-- Phase 2: NX-051 connection/profile contracts and CLI testing, NX-052 Tempo adapter plus Jira/Odoo routing. ICS is a demo/context adapter; Outlook/Google are selectable follow-up adapters when requested, not prerequisites.
+- Phase 2: NX-051 connection/profile contracts and CLI testing, NX-052 Tempo adapter plus Jira/Odoo routing, and NX-011 canonical Jira task resolution with explicit local project/repository bindings and persisted Odoo/Tempo provenance. ICS is a demo/context adapter; Outlook/Google are selectable follow-up adapters when requested, not prerequisites.
 - Phase 3: NX-053 runtime adapter contract and OpenCode first implementation; NX-054 optional setup agent over the existing draft/test services.
 - Phase 4: NX-055 shared Connections/Planning Profiles/runtime settings and setup preview in both modes.
 - Phases 5–8: bind revisions to approvals, enforce runtime capability admission and test configuration migration/recovery with existing safety gates.
@@ -127,6 +139,6 @@ Required tests include scheduled helpdesk with Jira requirements; project task w
 
 ## Evidence and remaining setup decisions
 
-Official sources reviewed 2026-10-20: [Tempo Cloud API](https://apidocs.tempo.io/), [v4 planning endpoint changes](https://help.tempo.io/planner/latest/tempo-api-version-4-0-vs-version-3-0-a-comparison), [Tempo/Jira optional field synchronization](https://help.tempo.io/planner/latest/sync-plans-with-jira-issues). ACP evidence belongs in `OPENCODE_INTEGRATION.md`.
+Official sources reviewed 2026-10-20: [Tempo Cloud API](https://apidocs.tempo.io/), [v4 planning endpoint changes](https://help.tempo.io/planner/latest/tempo-api-version-4-0-vs-version-3-0-a-comparison), [Tempo/Jira optional field synchronization](https://help.tempo.io/planner/latest/sync-plans-with-jira-issues). Current official integration references also reviewed during Phase 2: [Jira Cloud REST API](https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/), [Odoo 19 JSON-2](https://www.odoo.com/documentation/19.0/developer/misc/api/odoo.html), and [Odoo 18 external API](https://www.odoo.com/documentation/18.0/developer/reference/external_api.html). ACP evidence belongs in `OPENCODE_INTEGRATION.md`.
 
 Confirmed by the developer: Tempo/Jira provides planning; helpdesk work uses Jira tickets; project requirements live in Odoo tasks. Still requiring real setup evidence: Cloud/Data Center/product variant, account IDs, permissions, Jira classification fields, actual Jira→Odoo reference mechanism, Odoo instance/version/company restrictions and repository mappings. No private connection was tested. These questions block their live adapter setup, not Phase 1.

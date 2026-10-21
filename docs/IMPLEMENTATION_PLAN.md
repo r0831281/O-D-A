@@ -1,6 +1,6 @@
 # Phased implementation and execution handoff
 
-Blueprint revision 2, 2026-10-20; implementation status updated 2026-10-21. The confirmed initial source workflow and adapter/setup contracts are in `CONNECTIONS_AND_PROFILES.md`. Start with `AGENTS.md`; read the phase's linked contracts and `BACKLOG.md`. Phase 1 acceptance passed in the hardened disposable container; see `PHASE1_VERIFICATION.md`. All later phases remain planned. A Codex session executes one explicitly requested phase and stops at its definition of done.
+Blueprint revision 2, 2026-10-20; implementation status updated 2026-10-21. The confirmed initial source workflow and adapter/setup contracts are in `CONNECTIONS_AND_PROFILES.md`. Start with `AGENTS.md`; read the phase's linked contracts and `BACKLOG.md`. Phase 1 and Phase 2 passed their documented hardened-container checks; see `PHASE1_VERIFICATION.md` and `PHASE2_VERIFICATION.md`. No Phase 3 work is included.
 
 ## Dependencies and release slices
 
@@ -58,6 +58,8 @@ Configuration discovery/test/preview must be available through CLI in Phase 2; t
 **Definition of done:** NX-001–006 pass; docs reflect actual layout/commands; no future-phase placeholders with permissive behavior, no external calls and no agent or implementation functionality. Leave Phase 2 as next ticket.
 
 ## Phase 2 — Configurable Tempo/Jira/Odoo planning synchronization
+
+**Implementation status, 2026-10-21:** NX-007, NX-051, NX-008, NX-009, NX-052, NX-010, NX-011 and NX-012 passed fixture-scope acceptance in the hardened container. NX-011 profiles name explicit local project and repository-binding IDs. Jira issue identity creates the canonical task, Odoo task snapshots remain project requirements provenance, and Tempo allocation snapshots are separately associated and historically retained. Missing/ambiguous/inaccessible Odoo links block readiness without fallback. Live providers remain untested; see `PHASE2_VERIFICATION.md`. No Phase 3 work is included.
 
 **Goals/scope:** import the developer's actual planned work with configurable source authorities, without external writeback or AI. Tickets NX-007–NX-012 plus NX-051–NX-052. Read `CONNECTIONS_AND_PROFILES.md`, source contracts in `ARCHITECTURE.md` and identity schema in `DATA_MODEL.md`.
 

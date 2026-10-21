@@ -147,6 +147,15 @@ def canonical_hash(value) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def tuple_json_arrays(value):
+    """Map parsed JSON arrays to immutable Python tuples for strict typed configs."""
+    if isinstance(value, list):
+        return tuple(tuple_json_arrays(item) for item in value)
+    if isinstance(value, dict):
+        return {key: tuple_json_arrays(item) for key, item in value.items()}
+    return value
+
+
 class SourceIdentity(StrictModel):
     schema_version: Literal[1] = 1
     adapter_id: str = Field(min_length=1, max_length=100)

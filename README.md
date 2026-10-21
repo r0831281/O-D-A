@@ -1,11 +1,13 @@
-# NEXUS — Phase 1 foundation
+# NEXUS — Phase 2 source synchronization
 
-Phase 1 is implemented and its exit criteria pass in the documented disposable
-container. The installed-wheel probe, 187 tests and temporary-state CLI demonstration
-passed; see [verification evidence](docs/PHASE1_VERIFICATION.md). Phase 2 onward remains planned.
+Phase 1 passed its exit criteria. Phase 2 adds typed source connections, planning
+profiles, read-only synchronization, canonical task resolution, ICS import and
+daily/window projections. The complete fixture-scope Phase 2 exit passed in the hardened container;
+see [Phase 1 evidence](docs/PHASE1_VERIFICATION.md) and
+[Phase 2 evidence](docs/PHASE2_VERIFICATION.md). No Phase 3 work is included.
 
 This is one Python package with synchronous SQLAlchemy Core, one SQLite database and
-an explicitly invoked no-op worker. It has no connectors, runtime adapters, AI agents,
+an explicitly invoked no-op worker. It has read-only source adapters but no runtime adapters, AI agents,
 frontend, execution grants, external writes, automatic scheduling or OS services.
 OpenCode is the intended first future adapter; no core module imports or invokes it.
 
@@ -70,6 +72,41 @@ and unsupported schema versions. Version 1 canonical hashes normalize Unicode to
 sort object keys, use integer values and reject floats and duplicate normalized keys.
 Source identity includes adapter, instance, remote type and immutable remote ID.
 No repository commit has been verified or authorized by the fixture manifest.
+
+## Phase 2 source setup and planning
+
+After migrating, the operator CLI supports `source-discovery`, `connection-draft`,
+`connection-test`, `profile-draft`, `profile-preview`, `profile-activate`,
+`profile-rollback`, `source-sync`, `source-sync-request`, `planning-resolve`,
+`planning-day`, `planning-window` and `calendar-import`. Drafts are strict versioned JSON files.
+Credential fields are rejected; provider credentials are resolved from explicitly
+named `NEXUS_SECRET_*` environment variables at read time and are never stored in the
+database or sent to agents. Odoo connection and profile scopes require explicit
+company/project IDs. Each planning classification rule names a local NEXUS project
+and explicit repository-binding IDs; the IDs must point to enabled repositories linked
+to that project. The Jira issue is the canonical task identity. For project work, the
+explicitly linked Odoo task snapshot is requirements provenance; each Tempo allocation
+and snapshot is stored as a separate planning association. Tempo live use remains
+blocked until the selected Tempo product and account are verified. No provider was
+live-tested in Phase 2.
+
+`connection-test` performs allowlisted read checks only. `profile-preview` accepts
+fixture cases and records a redacted preview. Activation requires a complete preview
+and fresh connection-read tests, and records the local operator. Rollback creates a
+new activation event and requires resynchronization. `planning-day` and
+`planning-window` accept fixture JSON with `freshness`, `allocations` and `schedules`
+arrays and mark their output simulated. Date/effort capacity remains separate from
+clock appointments. `planning-resolve PROFILE_REVISION_ID JIRA_EXTERNAL_ITEM_ID`
+materializes current source evidence into a Jira-keyed canonical task and immutable
+resolution history; missing or inaccessible Odoo requirements keep that task blocked.
+`calendar-import` parses a local ICS file, persists recurrence
+occurrences and reconciles only the complete file supplied by that command.
+
+The authenticated local API also exposes `POST /source-sync-requests`,
+`GET /source-sync-requests/{request_id}`, `GET /planning/days/{local_date}` and
+`GET /planning/windows/{start_date}`. These local reads/queues do not write to external
+providers. Canonical resolution uses explicit NX-011 local project/repository
+bindings and the `planning-resolve` operator command.
 
 ## HTTP contract
 
@@ -148,10 +185,10 @@ a non-root user, without network or host mounts, with a read-only root and tempo
 writable, executable storage for the installed virtual-environment interpreter:
 
 ```sh
-docker build --pull=false -f verification/Dockerfile -t nexus-phase1-verify .
+docker build --pull=false -f verification/Dockerfile -t nexus-phase2-verify .
 docker run --rm --network none --read-only --cap-drop ALL \
   --security-opt no-new-privileges --pids-limit 128 --memory 512m --cpus 2 \
-  --tmpfs /tmp:rw,exec,nosuid,nodev,size=128m,mode=1777 nexus-phase1-verify
+  --tmpfs /tmp:rw,exec,nosuid,nodev,size=128m,mode=1777 nexus-phase2-verify
 ```
 
 The default command runs Ruff, then `verification/verify_package.py`. The driver
@@ -169,11 +206,11 @@ To select only the demo or tests after the same package probe, use the same boun
 ```sh
 docker run --rm --network none --read-only --cap-drop ALL \
   --security-opt no-new-privileges --pids-limit 128 --memory 512m --cpus 2 \
-  --tmpfs /tmp:rw,exec,nosuid,nodev,size=128m,mode=1777 nexus-phase1-verify \
+  --tmpfs /tmp:rw,exec,nosuid,nodev,size=128m,mode=1777 nexus-phase2-verify \
   python -I /app/verification/verify_package.py --demo-only
 docker run --rm --network none --read-only --cap-drop ALL \
   --security-opt no-new-privileges --pids-limit 128 --memory 512m --cpus 2 \
-  --tmpfs /tmp:rw,exec,nosuid,nodev,size=128m,mode=1777 nexus-phase1-verify \
+  --tmpfs /tmp:rw,exec,nosuid,nodev,size=128m,mode=1777 nexus-phase2-verify \
   python -I /app/verification/verify_package.py --tests-only
 ```
 

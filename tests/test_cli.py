@@ -29,7 +29,7 @@ def invoke(state, *arguments):
 def test_migrate_fixture_worker_restart_and_safe_failures(tmp_path):
     state = tmp_path.resolve() / "private"
     result, migrated = invoke(state, "migrate")
-    assert result.returncode == 0 and migrated["migration"] == "0001_foundation"
+    assert result.returncode == 0 and migrated["migration"] == "0002_source_sync"
     result, pairing = invoke(state, "pair")
     assert result.returncode == 0
     token = pairing["pairing_token"]

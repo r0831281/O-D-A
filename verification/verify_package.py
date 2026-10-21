@@ -32,7 +32,7 @@ def installed_probe(prefix):
         if not Path(module.__file__).resolve().is_relative_to(prefix):
             raise RuntimeError("installed_module_provenance_failed")
     migrations = importlib.resources.files("nexus.migrations")
-    for resource in ("env.py", "versions/0001_foundation.py"):
+    for resource in ("env.py", "versions/0001_foundation.py", "versions/0002_source_sync.py"):
         if not migrations.joinpath(resource).is_file():
             raise RuntimeError("installed_migration_resource_missing")
 

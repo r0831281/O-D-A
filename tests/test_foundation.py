@@ -72,7 +72,7 @@ def test_empty_migration_is_repeatable_and_matches_schema(tmp_path):
             assert set(inspector.get_table_names()) == set(s.metadata.tables) | {"alembic_version"}
             assert (
                 connection.exec_driver_sql("SELECT version_num FROM alembic_version").scalar_one()
-                == "0001_foundation"
+                == "0002_source_sync"
             )
             assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
             for table in s.metadata.tables.values():
